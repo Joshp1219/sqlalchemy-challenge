@@ -31,6 +31,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end><br/>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -68,6 +70,44 @@ def tobs():
         yr_temp.append(yrtemp)
     return jsonify(yr_temp)
 
+
+def calc_start_temps(start_date):
+    return session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+                         filter(Measurement.date >= start_date).all()
+
+
+@app.route("/api/v1.0/<start>")
+def startday(start):
+    calc_s_temp = calc_start_temps(start)
+    s_temp= list(np.ravel(calc_s_temp))
+
+    t_min = s_temp[0]
+    t_max = s_temp[2]
+    t_avg = s_temp[1]
+    t_dict = {'Minimum temperature': t_min, 'Maximum temperature': t_max, 'Avg temperature': t_avg}
+
+    return jsonify(t_dict)
+
+
+def calc_temps(start_date, end_date):
+    return session.query(func.min(Measurement.tobs), \
+                         func.avg(Measurement.tobs), \
+                         func.max(Measurement.tobs)).\
+                         filter(Measurement.date >= start_date).\
+                         filter(Measurement.date <= end_date).all()
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def startend(start, end):
+    calc_se_temp = calc_temps(start, end)
+    se_temp= list(np.ravel(calc_se_temp))
+
+    temp_min = se_temp[0]
+    temp_max = se_temp[2]
+    temp_avg = se_temp[1]
+    temp_dict = { 'Minimum temperature': temp_min, 'Maximum temperature': temp_max, 'Avg temperature': temp_avg}
+
+    return jsonify(temp_dict)
 
 if __name__ == '__main__':
     app.run(debug=True)
